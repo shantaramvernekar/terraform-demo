@@ -68,6 +68,19 @@ To avoid charges, remove the resources when you are finished:
 terraform destroy
 ```
 
+## GitHub Actions deploy pipeline
+
+The repository now includes a `Terraform Deploy to AWS` workflow that runs Terraform fmt, init, validate, plan, and (optionally) apply directly from GitHub Actions. Review these prerequisites **before invoking the pipeline** from the **Actions → Terraform Deploy to AWS → Run workflow** menu:
+
+1. **Backend already provisioned** – Create the remote backend S3 bucket and DynamoDB table referenced in `main.tf` (or update `main.tf` to point at your own names) so `terraform init` can succeed.
+2. **OIDC-enabled IAM role** – Create an AWS IAM role that trusts the GitHub OIDC provider for this repository and grants the permissions needed to manage the S3 resources. Store its ARN in the repository secret `AWS_ROLE_TO_ASSUME` (the workflow uses [`aws-actions/configure-aws-credentials`](https://github.com/aws-actions/configure-aws-credentials) with OIDC). If you prefer access keys, swap the action inputs to `aws-access-key-id` / `aws-secret-access-key` and save those values as secrets instead.
+3. **Terraform variable files (optional)** – If you want to pass a `-var-file`, commit it to the repo (or provide a path available to the runner) and supply the path when dispatching the workflow. The pipeline will upload the rendered plan (`plan.txt`) and binary (`tfplan`) as artifacts for review.
+
+When running the workflow you can choose:
+- **AWS region** – Used by the provider and backend.
+- **Terraform workspace** – The pipeline creates the workspace if it does not exist, letting you isolate environments (e.g., `dev`, `qa`, `prod`).
+- **Auto-apply** – Set to `true` to promote the saved plan automatically in the `apply` job; otherwise only the plan job runs.
+
 ## Next steps for deeper learning
 - Add more modules (VPC, IAM roles, EKS, RDS) and wire them together to practice dependency management.
 - Experiment with **data sources** to pull existing infrastructure details into your plans.
